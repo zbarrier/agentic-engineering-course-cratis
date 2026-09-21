@@ -435,23 +435,9 @@
       }
     },
     {
-      "id": "c1368daa-e9be-4e1b-9585-0f719777a588",
-      "slice": "Shift Assignments",
-      "index": 31,
-      "contextName": "default",
-      "contextSlug": "default",
-      "folder": "shiftassignments",
-      "status": "Done",
-      "definition": {
-        "id": "c1368daa-e9be-4e1b-9585-0f719777a588",
-        "title": "Shift Assignments",
-        "status": "Done"
-      }
-    },
-    {
       "id": "4e46fc98-f27d-45f3-99af-42409154c91c",
       "slice": "Create Shift",
-      "index": 32,
+      "index": 31,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "createshift",
@@ -465,7 +451,7 @@
     {
       "id": "30e7993c-a99a-48c9-a51d-69a27f9b1ce8",
       "slice": "Shift Summary",
-      "index": 33,
+      "index": 32,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "shiftsummary",
@@ -479,7 +465,7 @@
     {
       "id": "1cc213ff-f05b-4f11-b4d7-c539f710ffa2",
       "slice": "Assign Employee to Shift",
-      "index": 34,
+      "index": 33,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "assignemployeetoshift",
@@ -493,7 +479,7 @@
     {
       "id": "5c3becce-4799-40d1-b6fd-cdaccd60c913",
       "slice": "Active Shift Details",
-      "index": 35,
+      "index": 34,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "activeshiftdetails",
@@ -501,6 +487,20 @@
       "definition": {
         "id": "5c3becce-4799-40d1-b6fd-cdaccd60c913",
         "title": "Active Shift Details",
+        "status": "Done"
+      }
+    },
+    {
+      "id": "c1368daa-e9be-4e1b-9585-0f719777a588",
+      "slice": "Shift Assignments",
+      "index": 35,
+      "contextName": "default",
+      "contextSlug": "default",
+      "folder": "shiftassignments",
+      "status": "Done",
+      "definition": {
+        "id": "c1368daa-e9be-4e1b-9585-0f719777a588",
+        "title": "Shift Assignments",
         "status": "Done"
       }
     },

@@ -659,3 +659,123 @@ Learnings:
     doing it retroactively works (uncommitted changes carry over to a new branch cleanly) but risks
     mixing in unrelated uncommitted repo state if any exists when the iteration starts.
 ---
+
+## 2026-09-21T13:59:10.697Z — Task 9c4f2206-b93b-4345-8e3d-9c3f9472372b
+
+Slice: PendingShiftStarts (48770156-9dc5-44de-a79a-36ca1827c947)
+Status change: Created
+
+Action taken:
+- Confirmed current status via mcp__eventmodelers__list_slices and mcp__eventmodelers__get_node:
+  still "Created" (STATE_VIEW). No build trigger for this status — logged the state transition only,
+  no code changes.
+- Local .build-kit/.slices/default/pendingshiftstarts/slice.json already matches board state
+  ({id, title, status, sliceType} minimal shape) — no update needed.
+
+Learnings:
+- No new learnings this iteration; confirms AGENT.md's existing note that "Created" slices need only
+  a status re-check, not a get_slice_data fetch.
+---
+
+## [2026-09-21T14:05:00Z] — Task 7feab017-1508-4223-9e63-f896946fb563
+
+Slice: ClockIn (1ed40266-e35a-4593-a421-4ba892407034)
+Status change: Created
+
+Action taken:
+- Re-verified current board status via mcp__eventmodelers__list_slices before acting (per AGENT.md
+  guidance that payload status can be stale) — confirmed still "Created", matching the payload.
+- "Created" is not a build trigger (only "Planned" is); per task instructions this status requires no
+  build action, just loading the slice and logging the transition. Local
+  .build-kit/.slices/default/clockin/slice.json already held the correct minimal
+  {id, title, status: Created, sliceType: STATE_CHANGE} shape — no changes needed.
+- No board status update, no code changes, no commit.
+
+Learnings:
+- Confirms the existing AGENT.md note: for boards with no MODEL_CONTEXT node, list_slices +
+  get_node is sufficient to safely re-verify a payload's sliceStatus before deciding whether to act;
+  no new learnings this iteration beyond what's already recorded.
+---
+## 2026-09-21T14:05:00Z — Task 6a314d8e-eb95-4b73-a7ff-f16a14e1d122
+
+Slice: MyShiftToday (069d40be-d555-4122-a43c-80b21cca5a18)
+Status change: Created
+
+Action taken:
+- Connected to the board, confirmed via `list_slices` that the slice is still `Created` (matches the
+  task payload). Loaded the slice via `/load-slice`; `.build-kit/.slices/default/index.json` and
+  `.build-kit/.slices/default/myshifttoday/slice.json` were already present and up to date (minimal
+  `{id, title, status, sliceType}` shape — nothing richer to fetch since the slice isn't elaborated
+  yet on the board). No build action taken per the `Created` status branch.
+
+Learnings:
+- None new this iteration — matches existing `Created`-status guidance already in AGENT.md.
+---
+
+## 2026-09-21T14:00:00.000Z — Task ec8dee48-84a2-48e4-a764-712c7cb320eb
+
+Slice: Record Shift Assignment (5b40d125-aa36-4027-b165-7e64589bba06)
+Status change: Created
+
+Action taken:
+- Re-verified current status via list_slices (still Created, sliceType AUTOMATION, matches task
+  payload). Loaded slice via /load-slice; local
+  .build-kit/.slices/default/recordshiftassignment/slice.json was already current with the board
+  (only {id, title, status, sliceType} — not yet elaborated with commands/events/processors). No
+  build action taken per the Created-status branch of the task instructions.
+
+Learnings:
+- No new learnings this iteration; confirms the existing AGENT.md notes about Created-status slices
+  and re-checking status via list_slices before acting.
+---
+
+## 2026-09-21T13:59:32.814Z — Task fa6182b3-8e5a-47c4-9b60-129c5a336c67
+
+Slice: PendingShiftAssignments (ce814e13-da54-4cc6-b9f9-88a83677595b)
+Status change: Created
+
+Action taken:
+- Re-verified current status via mcp__eventmodelers__list_slices before acting (payload status can go
+  stale) — confirmed still "Created" (STATE_VIEW), matching the payload. "Created" is not a build
+  trigger (only "Planned" is), so per task instructions this required only loading the slice and
+  logging the transition, no build action.
+- Ran /load-slice; local .build-kit/.slices/default/pendingshiftassignments/slice.json and the
+  index.json entry were already current with the board (minimal {id, title, status, sliceType} shape
+  — nothing richer to fetch since the slice isn't elaborated with queries yet). No changes needed.
+
+Learnings:
+- No new learnings this iteration; confirms existing AGENT.md guidance for Created-status slices.
+---
+
+## 2026-09-21T13:59:39.706Z — Task ee39725c-c912-4a2a-8208-39b87588952b
+
+Slice: Record Shift Schedule (1579f667-dbd9-4849-a4f6-7d47b630786c)
+Status change: Created
+
+Action taken:
+- Re-verified current slice status via mcp__eventmodelers__list_slices (still "Created", sliceType AUTOMATION), confirming no drift since the task was queued.
+- Loaded slice via /load-slice; local .build-kit/.slices/default/recordshiftschedule/slice.json and its index.json entry already matched the board's current state ({id, title, status, sliceType} — no commands/processors elaborated yet).
+- No build action taken — "Created" is not a build trigger (only "Planned" is).
+
+Learnings:
+- No new learnings this iteration; confirms existing AGENT.md guidance that persisted slice files can already be in sync with the board — check before rewriting.
+---
+
+## 2026-09-21T14:00:00.000Z — Task 0896c3a6-1089-4155-8c34-554aa4c0fdfe
+
+Slice: PendingShiftSchedules (78c3f677-fe66-4491-ba84-53c1bd215323)
+Status change: Created
+
+Action taken:
+- Ran /connect (inline params board/token/org/baseUrl already supplied — verified via
+  mcp__eventmodelers__list_slices).
+- Confirmed via list_slices and get_node that the slice is currently at status "Created"
+  (sliceType STATE_VIEW), matching the payload.
+- Per the "Created" branch of the task instructions, this is a state-transition log only —
+  no build action taken (Created is not the Planned build trigger).
+
+Learnings:
+- No new reusable learnings this iteration; existing AGENT.md guidance (resolve slice
+  identity via list_slices + get_node, always re-check live status rather than trusting
+  progress.txt history) applied cleanly.
+---
