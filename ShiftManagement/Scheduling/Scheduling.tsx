@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { CreateShiftDialog } from './CreateShift';
 import { AssignEmployeeToShiftDialog } from './AssignEmployeeToShift';
 import { ActiveShiftDetailsView } from './ActiveShiftDetails';
+import { ShiftAssignmentsView } from './ShiftAssignments';
 import { useDialog } from '@cratis/arc.react/dialogs';
 
 export const Scheduling = () => {
@@ -27,6 +28,7 @@ export const Scheduling = () => {
                 )}
             </div>
             {shiftId && <ActiveShiftDetailsView shiftId={shiftId} />}
+            {shiftId && <ShiftAssignmentsView shiftId={shiftId} />}
             <CreateShift />
             <AssignEmployeeToShift />
         </div>

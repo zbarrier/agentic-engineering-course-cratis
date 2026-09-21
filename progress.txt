@@ -588,3 +588,74 @@ Learnings:
     Pattern: `const [result] = SomeQuery.use({ param })`, check `result.isPerforming` before rendering,
     render from `result.data`. No `DataTableForObservableQuery` needed for a single-item snapshot query.
 ---
+
+## [2026-09-21T14:07:56.000Z] — Task 760981af-1266-40b6-8a14-359e7ddfee0e
+
+Slice: Flag No-Show (9dfd36bc-f1e9-4b88-87f2-f286d19db636)
+Status change: Created
+
+Action taken:
+- Confirmed via `mcp__eventmodelers__list_slices` that this slice is currently status "Created" on
+  the live board, matching the task payload. Per the "Any other status" rule, this requires only
+  logging the transition — no build/board action taken.
+
+Learnings:
+- This slice was previously driven to "Blocked" on 2026-09-18 (see that entry above — it posted a
+  QUESTION comment about the missing `EmployeeAssignedToShift` trigger event). It is now back to
+  "Created", meaning slice status is not a one-way ratchet from this agent's perspective — a human
+  (or another process) can reset a previously Blocked/Planned slice back to Created independently of
+  anything this agent did. Don't assume a slice's last-known status from progress.txt history still
+  holds; always confirm current status via `list_slices` before acting.
+---
+
+## [2026-09-21] - Shift Assignments
+
+- Picked "Shift Assignments" (STATE_VIEW, id c1368daa-e9be-4e1b-9585-0f719777a588, index 31) — the
+  only "Planned" slice in both local `index.json` and the live board (cross-checked via
+  `mcp__eventmodelers__list_slices` first). Set status to InProgress (board), created branch
+  `feature/shift-assignments` from `main` (note: created it partway through, after the backend/specs
+  work — should have created it before starting per the documented step ordering; no harm done since
+  no other slice's work was mixed in).
+- Fetched full spec via `mcp__eventmodelers__get_slice_data(contextName="Shift Management", sliceId=...)`.
+  READMODEL "Shift Assignments" (shiftId, employeeId as `List` cardinality) has an INBOUND dependency
+  on "Employee Assigned to Shift" (produced by the now-Done "Assign Employee to Shift" slice) and an
+  OUTBOUND dependency on the "Active Shift" HTML_SCREEN (same screen already used by the "Active Shift
+  Details" slice). Two specs: one with employees assigned (non-empty list), one with none assigned yet
+  (`expectEmptyList: true`, GIVEN only "Shift Created", no `EmployeeAssignedToShift`).
+- Implemented `ShiftManagement/Scheduling/ShiftAssignments/ShiftAssignments.cs` as its own
+  `[ReadModel]` record `(ShiftId, IEnumerable<EmployeeId>)` with a custom `IReducerFor<ShiftAssignments>`
+  folding `EmployeeAssignedToShift` events (near-identical to the *private* `ShiftAssignments` read
+  model already defined inside `AssignEmployeeToShift.cs` for its own DCB duplicate-assignment check —
+  kept as a **separate** record in a separate namespace/file rather than reusing that one, per the "ALL
+  backend artifacts for a slice in ONE file" / "one read model per use case" rules; same precedent as
+  `ShiftSummary` vs `ActiveShiftDetails` both independently projecting overlapping fields from
+  `ShiftCreated`). The static query `GetShiftAssignments(shiftId, collection)` returns a *non-null*
+  `ShiftAssignments` with an empty `EmployeeIds` list when no document exists yet, rather than `null` —
+  needed to satisfy the "no employees assigned yet" spec's non-null empty-list expectation (no event
+  reacts to `ShiftCreated` in this reducer; the empty-list fallback lives in the query method instead).
+- Wrote 2 specs under `CratisApp.Specs/ShiftManagement/Scheduling/ShiftAssignments/for_ShiftAssignments/`,
+  same NSubstitute-on-`IMongoCollection.FindAsync` mocking as `ShiftSummary`/`ActiveShiftDetails` — no
+  live Mongo needed.
+- A board comment on the readmodel ("This list only shows employee IDs — does the manager need to see
+  employee names here too?") was read but NOT acted on: not covered by a spec, same precedent as prior
+  slices' unactioned out-of-spec comments (also ties into the still-Blocked "Available Employees" slice,
+  which hit the same "no Employee aggregate exists" gap).
+- Frontend: added `ShiftAssignmentsView.tsx` (same `Query.use({shiftId})` / `result.isPerforming` /
+  `result.data` snapshot-query pattern as `ActiveShiftDetailsView`), rendering a plain `<ul>` of raw
+  employee-id strings (or "No employees assigned yet."). Wired into `Scheduling.tsx` right below
+  `ActiveShiftDetailsView`, both gated on the same optional `:shiftId` route param — no new route needed.
+- `dotnet build` (0 errors), `dotnet test --filter "FullyQualifiedName~ShiftAssignments"` (2/2 passed),
+  `npx tsc --noEmit` (only the same pre-existing errors: `SomeModule/SomeFeature/Listing/*`, plus the
+  same duplicate-`@cratis/arc`-package proxy type mismatch already seen on `ActiveShiftDetails.ts` /
+  `ShiftSummary.ts`, now also on the new `ShiftAssignments.ts` — none in hand-written files).
+- Committed and merged to `main` as a fast-forward; set status to Done (board + local index.json + local
+  slice.json).
+- **Learnings for future iterations:**
+  - Confirms the "duplicate read model across slices is fine" convention extends to read models backed
+    by a custom `IReducerFor<T>` (accumulated list), not just `[FromEvent<T>]` AutoMap projections —
+    each slice keeps its own copy even when another slice's file already computes the same shape
+    internally for a different purpose (DCB check vs. public query).
+  - Create the `feature/<slicename>` branch as the very first step next time, before any file edits —
+    doing it retroactively works (uncommitted changes carry over to a new branch cleanly) but risks
+    mixing in unrelated uncommitted repo state if any exists when the iteration starts.
+---

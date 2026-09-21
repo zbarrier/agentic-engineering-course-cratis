@@ -15,3 +15,8 @@ very top of that file (not in this file). **Read that section too, not just this
   the minimal `{id, title, status, sliceType}` shape (matching existing files under
   `.build-kit/.slices/default/*/slice.json`) is sufficient — there's nothing richer to fetch until
   the slice is elaborated on the board.
+- Slice status is not a one-way ratchet: a slice previously driven to `Blocked` (or any other
+  status) by a past task iteration can later show up back at `Created` on the live board (confirmed
+  via `list_slices`), independent of anything this agent did. Don't trust a slice's last-known
+  status from `progress.txt` history — always re-check current status via
+  `mcp__eventmodelers__list_slices` before deciding what action a `slice:changed` task needs.

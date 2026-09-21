@@ -1,20 +1,5 @@
 [
   {
-    "id": "760981af-1266-40b6-8a14-359e7ddfee0e",
-    "createdAt": "2026-09-21T13:59:05.864Z",
-    "payload": {
-      "assignee": null,
-      "boardId": "a15a6431-c862-43e3-8b75-e3ea826f0f1e",
-      "event": "slice:changed",
-      "organizationId": "d1ccc3ae-5d4b-4216-91a8-09afbfeab1bf",
-      "sliceId": "9dfd36bc-f1e9-4b88-87f2-f286d19db636",
-      "sliceStatus": "Created",
-      "sliceTitle": "Flag No-Show",
-      "ticketNumber": null,
-      "timestamp": 1789999144906
-    }
-  },
-  {
     "id": "9c4f2206-b93b-4345-8e3d-9c3f9472372b",
     "createdAt": "2026-09-21T13:59:10.697Z",
     "payload": {
