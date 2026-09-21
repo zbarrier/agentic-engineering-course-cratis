@@ -19,6 +19,12 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Remove="CratisApp.Specs/**/*.cs" />
+        <Content Remove="CratisApp.Specs/**/*" />
+        <None Remove="CratisApp.Specs/**/*" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Cratis" Version="*" />
         <PackageReference Include="Cratis.Arc.MongoDB" Version="*" />
     </ItemGroup>

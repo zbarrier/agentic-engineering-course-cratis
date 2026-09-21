@@ -1,0 +1,390 @@
+## Codebase Patterns
+
+- Namespace root is `CratisApp`; slices live under `<Module>/<Feature>/<Slice>/<Slice>.cs` (e.g.
+  `Reservations/Booking/PlaceReservation/PlaceReservation.cs`, `ShiftManagement/Scheduling/CreateShift/CreateShift.cs`).
+  Module-level shared concepts (`ConceptAs<T>`) sit one level up, e.g. `ShiftManagement/Scheduling/ShiftId.cs`.
+- There is NO test project checked in by default (`CratisApp.Specs` was previously removed as "added
+  incorrectly"). The root cause: `CratisApp.csproj` uses `Microsoft.NET.Sdk.Web`'s default `**/*.cs`
+  glob, so nesting a test project's folder inside the repo root without excluding it makes the main
+  project try to compile the test project's own files too (CS0579 duplicate-attribute errors). Before
+  adding any files under `CratisApp.Specs/`, add to `CratisApp.csproj`:
+  `<ItemGroup><Compile Remove="CratisApp.Specs/**/*.cs" /><Content Remove="CratisApp.Specs/**/*" /><None Remove="CratisApp.Specs/**/*" /></ItemGroup>`.
+  Scaffold with `dotnet new xunit -n CratisApp.Specs -o CratisApp.Specs`, retarget to `net9.0`, add
+  `Cratis.Specifications` / `Cratis.Specifications.XUnit` / `NSubstitute` (`Version="*"`) plus a
+  `ProjectReference` to `..\CratisApp.csproj`, delete the scaffolded `UnitTest1.cs`, add a
+  `GlobalUsings.cs` (`global using Cratis.Specifications;` / `global using Xunit;`), and register it
+  with `dotnet sln CratisApp.sln add CratisApp.Specs/CratisApp.Specs.csproj` (never hand-edit the
+  `.sln`). The specs project does NOT set `TreatWarningsAsErrors` — CS8618 nullable-field warnings on
+  unassigned spec fixture fields are expected/harmless, matching the original spec files' style.
+- A command field marked `"generated": true` in slice JSON is excluded from the `[Command]` record's
+  parameters — it's computed in `Handle()` and only appears on the resulting event. If it's also
+  `"idAttribute": true`, use the "generate-and-return" pattern: `Handle()` returns `(TId, TEvent)`,
+  generating `TId.New()` internally and passing it into the event constructor too (since the modeled
+  event still lists the id as one of its own fields, even though it's also the event source).
+- Cross-field command validation with no event-sourced state needed (e.g. "end must be after start",
+  "fromDay must not be later in the week than toDay") goes in `CommandValidator<T>` via
+  `RuleFor(c => c.PropertyA).Must((command, value) => ...compare against command.PropertyB...)` /
+  `.GreaterThan(command => command.OtherProperty)` — test by instantiating the validator directly in a
+  spec and asserting `validator.Validate(command).IsValid`, no Chronicle/HTTP fixture needed.
+- `ConceptAs<T>`, `EventSourceId`, `[Command]`, `[EventType]`, `[Key]` etc. resolve in slice `.cs` files
+  with NO explicit `using` — the Cratis SDK injects its own implicit global usings. Don't add usings to
+  concept/slice files just because a type looks unqualified; match the existing files (none).
+- Proxy-generated `index.ts` barrels are NOT clobbered on rebuild once hand-edited — adding a second
+  `export * from './XyzDialog'` line survives subsequent `dotnet build` runs.
+---
+
+## [2026-09-18] - Record Shift Schedule
+
+- Picked "Record Shift Schedule" (AUTOMATION, index 22) as the highest-priority "Planned" slice
+  (the other Planned slice was "PendingShiftSchedules", index 36).
+- Local slice.json only carried id/title/status/sliceType — fetched full slice data via
+  mcp__eventmodelers__get_slice_data (contextName="Time Tracking") to get the real spec.
+- The reactor is specified to trigger on "Shift Created", produced by the "Create Shift" command
+  in the Shift Management context/chapter. That command/event does not exist anywhere in the
+  codebase yet (`Create Shift` slice status is "Created", not Planned/Done — grep for
+  ShiftCreated/CreateShift returned nothing, and no shift-related folders exist at all).
+- Because Cratis reactors dispatch by first-parameter C# type, this slice cannot compile without
+  a concrete EventType for the trigger, and it's genuinely ambiguous whether to (a) define that
+  external EventType inline now, (b) wait for Create Shift to be promoted/built first, or (c) the
+  modeled dependency is wrong. Per the Escalating Ambiguity process, posted a QUESTION comment on
+  the slice's board node and set status to Blocked (board + local index.json + local slice.json)
+  instead of guessing.
+- No code changes made. No commit made (nothing to build).
+- **Learnings for future iterations:**
+  - The `.build-kit/.slices/default/<folder>/slice.json` files can be stale/minimal placeholders —
+    always fetch full data with `mcp__eventmodelers__get_slice_data` (needs a `contextName`, which
+    is the CHAPTER/timeline title, e.g. "Time Tracking", "Shift Management" — not "default";
+    `list_slices` alone won't return field/spec detail, only id/title/status/sliceType).
+  - A background sync process keeps `.build-kit/.slices/default/index.json` in sync with the live
+    board with some lag — expect `Edit` to occasionally fail with "file has been modified since
+    read" and re-read before retrying.
+  - AUTOMATION slices whose trigger event belongs to a different, not-yet-Planned slice in another
+    chapter are a real blocker, not just theoretical — check the trigger event's owning slice
+    status and grep the codebase for it before assuming the reactor can be built.
+  - `progress.txt` lives at the project root (confirmed from `.build-kit/lib/ralph.js`:
+    `join(dirname(kitDir), 'progress.txt')`), not under `.build-kit/`.
+---
+
+## [2026-09-18] - Record Shift Assignment
+
+- Picked "Record Shift Assignment" (AUTOMATION, index 3) as the highest-priority "Planned" slice.
+  Other Planned slices this iteration: Flag No-Show (4), PendingShiftAssignments (7), MyShiftToday
+  (8), PendingShiftStarts (9), PendingLateArrivalReviews (11), PendingShiftSchedules (36), ClockIn
+  (40) — left untouched per "one slice per iteration."
+- Local slice.json was the stale id/title/status/sliceType placeholder only — fetched full spec via
+  mcp__eventmodelers__get_slice_data(contextName="Time Tracking", sliceId=...). ("Shift Management"
+  did NOT work as contextName for this slice even though the trigger event conceptually originates
+  there — "Time Tracking" did. contextName here is the CHAPTER hosting the slice's own elements, not
+  the chapter that owns the trigger event.)
+- Set status to InProgress (board + local index.json) before discovering the blocker, per the
+  documented step ordering.
+- Slice is a translation-style AUTOMATION: reacts to external event "Employee Assigned to Shift"
+  (produced by the "Assign Employee to Shift" command/slice) by calling its own RecordShiftAssignment
+  command, which re-emits an internal "EmployeeAssignedToShift" event. Same blocker pattern as the
+  prior "Record Shift Schedule" iteration: "Assign Employee to Shift" slice status is "Created" (not
+  Planned/Done), and grep for EmployeeAssignedToShift/AssignEmployeeToShift found nothing in the
+  codebase — the trigger EventType doesn't exist, so the reactor can't compile.
+- Posted a QUESTION comment (via mcp__eventmodelers__add_comment, type=QUESTION) on the slice node
+  and set status to Blocked (board + local index.json + local slice.json) instead of guessing.
+- No code changes made. No commit made (nothing to build).
+- **Learnings for future iterations:**
+  - `add_comment` supports `type: "QUESTION"` (not just "COMMENT") — use it for request-feedback
+    escalations, it's the more semantically correct type for flagging gaps.
+  - For `get_slice_data`, `contextName` must be the CHAPTER that hosts the slice's own elements —
+    don't assume it matches the bounded-context name implied by an externally-referenced trigger
+    event's origin. Try the slice's own apparent domain area first (here "Time Tracking" worked,
+    "Shift Management" did not, even though the trigger event is conceptually a Shift Management
+    concern).
+  - This is now the SECOND automation/translation slice in the "Shift Management → Time Tracking"
+    dependency chain blocked on an un-promoted producing command. If a future iteration picks up
+    "Assign Employee to Shift" (or "Create Shift") and promotes it to Planned/Done, both blocked
+    slices (Record Shift Schedule, Record Shift Assignment) should be revisited.
+---
+
+## [2026-09-18] - Flag No-Show
+
+- Picked "Flag No-Show" (AUTOMATION, index 3) as the highest-priority "Planned" slice. Other
+  Planned slices this iteration left untouched per "one slice per iteration": PendingShiftAssignments
+  (7), MyShiftToday (8), PendingShiftStarts (9), PendingLateArrivalReviews (11),
+  PendingShiftSchedules (36), ClockIn (40).
+- Local slice.json was the stale id/title/status/sliceType placeholder only — fetched full spec via
+  mcp__eventmodelers__get_slice_data(contextName="Time Tracking", sliceId=...).
+- Set status to InProgress (board + local index.json + local slice.json) before discovering the
+  blocker, per the documented step ordering.
+- Slice is an AUTOMATION: Given EmployeeAssignedToShift [EVENT], When FlagNoShow [COMMAND], Then
+  ShiftNoShowDetected [EVENT]. Same trigger event as the already-blocked "Record Shift Assignment"
+  slice — EmployeeAssignedToShift does not exist anywhere in the codebase (grep found nothing outside
+  progress.txt notes), and its producing slice "Assign Employee to Shift" (index 33) is still status
+  "Created", not Planned/Done. Cratis reactors dispatch by first-parameter C# type, so this can't
+  compile yet.
+- Also flagged a secondary ambiguity: the business description ("flag a shift as no-show once the
+  grace period elapses with no clock-in") reads as time-based/scheduled, but the spec only wires it
+  to an event reaction — asked for confirmation on whether a scheduled check is also needed.
+- Posted a QUESTION comment (mcp__eventmodelers__add_comment) on the slice node and set status to
+  Blocked (board + local index.json + local slice.json) instead of guessing.
+- No code changes made. No commit made (nothing to build).
+- **Learnings for future iterations:**
+  - This is now the THIRD slice blocked on the same "Assign Employee to Shift" → EmployeeAssignedToShift
+    dependency (after "Record Shift Assignment" and "Record Shift Schedule"). Promoting "Assign
+    Employee to Shift" (index 33, currently "Created") to Planned/Done would likely unblock all three
+    at once — worth prioritizing if/when it becomes available to pick up.
+---
+
+## [2026-09-18] - PendingShiftAssignments
+
+- Picked "PendingShiftAssignments" (STATE_VIEW, index 7) as the highest-priority "Planned" slice.
+  Other Planned slices this iteration left untouched per "one slice per iteration":
+  MyShiftToday (8), PendingShiftStarts (9), PendingLateArrivalReviews (11), PendingShiftSchedules
+  (36), ClockIn (40).
+- Local slice.json was the stale id/title/status/sliceType placeholder only — fetched full spec via
+  mcp__eventmodelers__get_slice_data(contextName="Time Tracking", sliceId=...).
+- Set status to InProgress (board + local index.json) before discovering the blocker.
+- The read model's only field mappings are "EmployeeAssignedToShift.shiftId" /
+  "EmployeeAssignedToShift.employeeId", with GIVEN step "Employee Assigned to Shift" (EVENT) and
+  OUTBOUND dependency on the "Record Shift Assignment" AUTOMATION (which consumes this todo-list to
+  know what's pending). Same undefined event as three prior blocked slices — "Assign Employee to
+  Shift" (index 33) is still status "Created", and grep of the actual codebase (outside .build-kit)
+  found zero shift-related files at all, confirming EmployeeAssignedToShift doesn't exist anywhere.
+- This is now the FOURTH slice blocked on the identical "Assign Employee to Shift" →
+  EmployeeAssignedToShift dependency chain (after Record Shift Assignment, Flag No-Show, Record Shift
+  Schedule). Posted a QUESTION comment via the request-feedback skill and set status to Blocked
+  (board + local index.json + local slice.json) instead of guessing the EventType's shape/namespace
+  ahead of its owning slice.
+- No code changes made. No commit made (nothing to build).
+- **Learnings for future iterations:**
+  - FOUR slices are now piled up on this single dependency: Record Shift Assignment, Flag No-Show,
+    Record Shift Schedule, PendingShiftAssignments. Promoting "Assign Employee to Shift" (index 33,
+    "Created") — and possibly "Create Shift" (index 31, "Created") which the Shift Management chapter
+    likely also needs first — to Planned/Done should be treated as high priority; it would unblock all
+    four at once.
+  - STATE_VIEW slices can be blocked by the same "undefined upstream EventType" problem as
+    AUTOMATION/TRANSLATION slices, not just reactors — any projection whose GIVEN/mapping references
+    an event from a not-yet-built producing slice hits the identical compile blocker.
+---
+
+## [2026-09-18] - MyShiftToday
+
+- Picked "MyShiftToday" (STATE_VIEW, index 7) as the highest-priority "Planned" slice. Other Planned
+  slices this iteration left untouched per "one slice per iteration": PendingShiftStarts (9),
+  PendingLateArrivalReviews (11), PendingShiftSchedules (36), ClockIn (40).
+- Local slice.json was the stale id/title/status/sliceType placeholder only — fetched full spec via
+  mcp__eventmodelers__get_slice_data(contextName="Time Tracking", sliceId=...).
+- Set status to InProgress (board + local index.json + local slice.json) before discovering the
+  blocker.
+- The read model maps fields from TWO not-yet-existing events: EmployeeAssignedToShift.shiftId
+  (produced by "Assign Employee to Shift", index 33, still "Created") and
+  ShiftCreated.startDateTime/endDateTime (produced by "Create Shift", index 31, still "Created").
+  Grep of the actual codebase (outside .build-kit/progress.txt) found zero matches for either event
+  name, confirming neither EventType exists yet.
+- This is now the FIFTH slice blocked on the "Assign Employee to Shift" / "Create Shift" not-yet-Planned
+  dependency chain (after Record Shift Assignment, Flag No-Show, Record Shift Schedule,
+  PendingShiftAssignments) — and the first blocked slice that additionally needs "Create Shift"
+  specifically (the prior four only needed "Assign Employee to Shift"). Posted a QUESTION comment via
+  mcp__eventmodelers__add_comment and set status to Blocked (board + local index.json + local
+  slice.json) instead of guessing.
+- No code changes made. No commit made (nothing to build).
+- **Learnings for future iterations:**
+  - FIVE slices now piled up on this dependency chain: Record Shift Assignment, Flag No-Show, Record
+    Shift Schedule, PendingShiftAssignments, MyShiftToday. Promoting "Create Shift" (index 31) and
+    "Assign Employee to Shift" (index 33) — both currently "Created" — to Planned/Done would unblock
+    all five (MyShiftToday needs both; the other four need only "Assign Employee to Shift"). This
+    should be treated as the highest-priority unblock target in the Shift Management chapter.
+---
+
+## [2026-09-18] - PendingShiftStarts
+
+- Picked "PendingShiftStarts" (STATE_VIEW, index 9) as the highest-priority "Planned" slice. Other
+  Planned slices this iteration left untouched per "one slice per iteration": PendingLateArrivalReviews
+  (11), PendingShiftSchedules (36), ClockIn (40).
+- Local slice.json was the stale id/title/status/sliceType placeholder only — fetched full spec via
+  mcp__eventmodelers__get_slice_data(contextName="Time Tracking", sliceId=...).
+- Set status to InProgress (board + local index.json + local slice.json) before discovering the
+  blocker.
+- The read model maps fields from EmployeeAssignedToShift.shiftId/employeeId (produced by "Assign
+  Employee to Shift", index 33, still "Created") and ShiftCreated.startDateTime (produced by "Create
+  Shift", index 31, still "Created"); it also has INBOUND dependencies on EmployeeClockedIn and
+  ShiftNoShowDetected (ClockIn is Planned but not yet built; Flag No-Show is Blocked on the same
+  chain). Grep of the actual codebase found zero matches for any of these four event names —
+  confirmed none exist as EventTypes yet.
+- This is now the SIXTH slice blocked on the "Assign Employee to Shift" / "Create Shift" dependency
+  chain (after Record Shift Assignment, Flag No-Show, Record Shift Schedule, PendingShiftAssignments,
+  MyShiftToday). Posted a QUESTION comment via mcp__eventmodelers__add_comment and set status to
+  Blocked (board + local index.json + local slice.json) instead of guessing.
+- No code changes made. No commit made (nothing to build).
+- **Learnings for future iterations:**
+  - SIX slices now piled up on this dependency chain: Record Shift Assignment, Flag No-Show, Record
+    Shift Schedule, PendingShiftAssignments, MyShiftToday, PendingShiftStarts. "Create Shift" (index
+    31) and "Assign Employee to Shift" (index 33) — both still "Created" — remain the highest-priority
+    unblock target; promoting either/both to Planned/Done would clear most or all of this backlog.
+---
+
+## [2026-09-18] - PendingLateArrivalReviews
+
+- Picked "PendingLateArrivalReviews" (STATE_VIEW, index 10) as the highest-priority "Planned" slice.
+  Other Planned slices this iteration left untouched per "one slice per iteration": PendingShiftSchedules
+  (36), ClockIn (40).
+- Local slice.json was the stale id/title/status/sliceType placeholder only — fetched full spec via
+  mcp__eventmodelers__get_slice_data(contextName="Time Tracking", sliceId=...).
+- Set status to InProgress (board) before discovering the blocker.
+- The read model maps fields from EmployeeClockedIn.timeEntryId/clockedInAt (produced by "ClockIn",
+  index 40, status Planned but not yet built), ShiftCreated.startDateTime (produced by "Create Shift",
+  index 31, still "Created"), and has an INBOUND dependency on LateArrivalFlagged (produced by "Flag
+  Late Arrival", index 2, still "Created"). Grep of the actual codebase found zero matches for any of
+  the three event names — none exist as EventTypes yet.
+- This is now the SEVENTH slice blocked on the "Create Shift" / "Assign Employee to Shift" dependency
+  chain (after Record Shift Assignment, Flag No-Show, Record Shift Schedule, PendingShiftAssignments,
+  MyShiftToday, PendingShiftStarts), and additionally the first one that also needs "Flag Late Arrival"
+  promoted and "ClockIn" actually built (ClockIn is Planned, not Created, but still unbuilt). Posted a
+  QUESTION comment via mcp__eventmodelers__add_comment and set status to Blocked (board + local
+  index.json + local slice.json) instead of guessing.
+- No code changes made. No commit made (nothing to build).
+- **Learnings for future iterations:**
+  - SEVEN slices now piled up on the Create Shift / Assign Employee to Shift chain. "Create Shift"
+    (index 31) and "Flag Late Arrival" (index 2) — both "Created" — plus building "ClockIn" (index 40,
+    already "Planned") are the remaining unblock targets for this specific slice.
+---
+
+## [2026-09-18] - PendingShiftSchedules
+
+- Picked "PendingShiftSchedules" (STATE_VIEW, index 36) as the highest-priority "Planned" slice
+  (lowest index among the two remaining Planned slices — the other was ClockIn, index 40, left
+  untouched per "one slice per iteration").
+- Local slice.json was the stale id/title/status/sliceType placeholder only — fetched full spec via
+  mcp__eventmodelers__get_slice_data(contextName="Time Tracking", sliceId=...).
+- Set status to InProgress (board + local index.json + local slice.json) before discovering the
+  blocker.
+- The read model projects entirely from "Shift Created" (shiftId, name, startDateTime, endDateTime),
+  produced by "Create Shift" (index 31, still "Created", not Planned/Done). Grep of the actual
+  codebase found zero matches for ShiftCreated/CreateShift — confirmed the EventType doesn't exist.
+- This is now the EIGHTH slice blocked on the "Create Shift" / "Assign Employee to Shift" dependency
+  chain (after Record Shift Schedule, Record Shift Assignment, Flag No-Show, PendingShiftAssignments,
+  MyShiftToday, PendingShiftStarts, PendingLateArrivalReviews). Posted a QUESTION comment via
+  mcp__eventmodelers__add_comment and set status to Blocked (board + local index.json + local
+  slice.json) instead of guessing the ShiftCreated EventType's shape/namespace ahead of its owning
+  slice.
+- No code changes made. No commit made (nothing to build).
+- **Learnings for future iterations:**
+  - EIGHT slices now piled up on this dependency chain. "Create Shift" (index 31, still "Created")
+    remains the single highest-priority unblock target — promoting it to Planned/Done would clear
+    most of this backlog by itself (a few also need "Assign Employee to Shift", index 33).
+  - Only one Planned slice remains untouched: ClockIn (index 40, STATE_CHANGE). Its command fields
+    (shiftId as user-input, employeeId from session, clockedInAt derived) don't directly reference
+    ShiftCreated, but one of its specs ("Reject clock-in more than 15 minutes before shift start")
+    implies a business rule needing the shift's scheduled start time — worth checking whether that
+    rule can be satisfied without the Create Shift chain before assuming it's unblocked.
+---
+
+## [2026-09-18] - ClockIn
+
+- Picked "ClockIn" (STATE_CHANGE, index 40) — the only remaining "Planned" slice in index.json.
+- Local slice.json was the stale id/title/status/sliceType placeholder only — fetched full spec via
+  mcp__eventmodelers__get_slice_data(contextName="Time Tracking", sliceId=...).
+- Set status to InProgress (board + local index.json) before discovering the blocker, per the
+  documented step ordering.
+- Command fields (timeEntryId generated, shiftId user-input, employeeId from session, clockedInAt
+  derived) don't carry the shift's scheduled start time. But specification #2 ("Reject clock-in more
+  than 15 minutes before shift start") requires Handle() to compare `now()` against the shift's
+  scheduled start — data that can only come from a Shift entity/ShiftCreated event. Confirmed via
+  `find . -iname "*.cs"` (outside .build-kit) that the entire codebase only has Reservations/ and
+  SomeModule/SomeFeature/ — zero Shift/TimeTracking code exists at all, and grep for
+  ShiftCreated/CreateShift found nothing outside progress.txt. "Create Shift" (index 31) is still
+  status "Created", not Planned/Done.
+- This is the NINTH slice blocked on the identical "Create Shift" precursor (after Record Shift
+  Schedule, Record Shift Assignment, Flag No-Show, PendingShiftAssignments, MyShiftToday,
+  PendingShiftStarts, PendingLateArrivalReviews, PendingShiftSchedules). Posted a QUESTION comment via
+  mcp__eventmodelers__add_comment asking whether to (a) wait for Create Shift to be built, (b) define
+  a minimal ShiftCreated EventType now, or (c) rework the grace-period rule — and set status to
+  Blocked (board + local index.json + local slice.json) instead of guessing.
+- No code changes made. No commit made (nothing to build).
+- **Learnings for future iterations:**
+  - NINE slices now piled up on the "Create Shift" dependency alone (ClockIn needed only "Create
+    Shift", not "Assign Employee to Shift" — the first blocked slice whose grace-period business rule
+    reads shift data directly from a STATE_CHANGE command's Handle(), not from a read model or
+    reactor trigger). With ClockIn also blocked, **every single remaining "Planned" slice in the
+    entire index is now exhausted** — nothing is left to pick up until "Create Shift" (index 31) or
+    "Assign Employee to Shift" (index 33) is promoted from "Created" to "Planned" by a human/upstream
+    process. This should be treated as the top-priority unblock target; promoting "Create Shift" alone
+    would likely unblock most of the backlog.
+  - Confirmed via `find . -iname "*.cs" -not -path "*/.build-kit/*" -not -path "*/bin/*" -not -path
+    "*/obj/*"` that the actual project only contains Reservations/ and SomeModule/SomeFeature/ so far
+    — useful quick sanity check before assuming any Shift/TimeTracking code might already exist.
+---
+
+## [2026-09-21] - Available Employees
+
+- The local `index.json` was stale relative to the live board: `mcp__eventmodelers__list_slices`
+  showed "Create Shift" (31), "Assign Employee to Shift" (32), "Active Shift Details" (33), "Shift
+  Assignments" (34), and "Shift Summary" (35) all now "Planned" on the board, while the local file
+  still had most of them as "Created". Picked "Available Employees" (STATE_VIEW, index 30) as the
+  highest-priority Planned slice by index order (lowest index among the now-Planned set).
+- Set status to InProgress (board) before discovering the blocker.
+- The READMODEL has fields shiftId/employeeId/name and specs where GIVEN can be "None" (query
+  should still return results with zero prior events) — meaning the read model must enumerate the
+  full universe of employees, not just ones seen in events. Checked for an Employee
+  entity/roster-establishing event anywhere: `mcp__eventmodelers__search_board_events(name="Employee")`
+  returned `[]` (nothing on the whole board, not just this chapter), and the "Assign Employee to
+  Shift" slice (also Planned) treats `employeeId` as a bare UUID field with no backing event either.
+  Confirmed via `find . -iname "*.cs" -not -path "*/.build-kit/*" -not -path "*/bin/*" -not -path
+  "*/obj/*"` that no Employee-related code exists in the codebase at all.
+- This is a new class of blocker vs. the earlier Shift/TimeTracking pile-up: it's not "waiting for a
+  specific precursor slice to be promoted" — there is no Employee aggregate/event modeled anywhere on
+  the board to promote. Posted a question via `/request-feedback` asking whether the roster/name
+  should come from (a) a new Employee-registration event/aggregate, (b) an external identity/session
+  source queried directly (not event-sourced), or (c) something else, and set status to Blocked
+  (board + local index.json + local slice.json) instead of guessing.
+- No code changes made. No commit made (nothing to build).
+- **Learnings for future iterations:**
+  - The local `.build-kit/.slices/default/index.json` can lag the live board by more than just
+    individual-slice staleness — always cross-check with `mcp__eventmodelers__list_slices` before
+    trusting which slices are actually "Planned" right now; several slices flipped Created→Planned
+    between the last iteration and this one without the local file reflecting it yet.
+  - `mcp__eventmodelers__search_board_events` searches the whole board regardless of chapter/context
+    — a `[]` result is a strong signal an entity/event was never modeled anywhere, not just missing
+    from the current chapter.
+  - `employeeId` is used throughout the Shift Management area as an opaque UUID with no backing
+    Employee aggregate/event — if a future slice needs employee attributes beyond the id (name, role,
+    etc.), expect the same blocker seen here until an Employee source is decided.
+---
+
+## [2026-09-21] - Create Shift
+
+- Picked "Create Shift" (STATE_CHANGE, index 31) as the highest-priority "Planned" slice. Cross-checked
+  local `index.json` against `mcp__eventmodelers__list_slices` first (per the earlier "Available
+  Employees" learning) — they matched this time. Other Planned slices left untouched per "one slice per
+  iteration": Shift Summary (32), Assign Employee to Shift (33), Active Shift Details (34), Shift
+  Assignments (35).
+- Set status to InProgress (board), created branch `feature/create-shift` from `main`.
+- Fetched full spec via `mcp__eventmodelers__get_slice_data(contextName="Shift Management", sliceId=...)`
+  — "Time Tracking" (used for prior Shift Management-adjacent automations) did NOT work here; "Shift
+  Management" did, since this slice's own elements live in that chapter.
+- Command `Create Shift` → Event `Shift Created`. `shiftId` is `generated: true` + `idAttribute: true`,
+  so it's excluded from the command's parameters and generated inside `Handle()` via the
+  "generate-and-return" pattern: `(ShiftId, ShiftCreated) Handle()`. Two validation specs implemented via
+  `CreateShiftValidator` (FluentValidation): `endDateTime > startDateTime`, and `fromDay` must not be
+  later in the week than `toDay` (Monday-first week order) — both are same-command field comparisons, no
+  DCB/read-model needed. Plus the happy-path spec.
+- Four board comments on this slice's elements (shift `type` enum values, recurring semantics, editing
+  after creation, double-click dedup) were read but NOT acted on — none are covered by a specification,
+  so per "only encode rules that appear in description/comments... and only implement what's specified,"
+  they were left as open questions rather than guessed into code or escalated (no spec depends on them).
+- Discovered this project has NO test project (`CratisApp.Specs` was removed in a prior commit as
+  "added incorrectly") — recreated it properly this time via `dotnet new xunit`, retargeted to net9.0,
+  added `Cratis.Specifications`/`Cratis.Specifications.XUnit`/`NSubstitute` + a `ProjectReference` to
+  `CratisApp.csproj`, and — the actual root cause of the prior removal — added a `<Compile Remove>` /
+  `<Content Remove>` / `<None Remove>` exclusion for `CratisApp.Specs/**/*` in `CratisApp.csproj` (its
+  `Microsoft.NET.Sdk.Web` default glob was compiling the nested test project's files into itself,
+  producing CS0579 duplicate-attribute errors). Registered the project with `dotnet sln ... add` rather
+  than hand-editing `CratisApp.sln`. Wrote 10 specs total (1 happy-path unit spec on `Handle()`, 2
+  validator specs) — all passing.
+- Also implemented the frontend: this slice has an inbound `HTML_SCREEN` ("Create Shift"), so it's
+  UI-triggered. Added `CreateShiftDialog.tsx` (CommandDialog with InputTextField/CheckboxField/
+  DropdownField/CalendarField), a new `ShiftManagement/Scheduling/Scheduling.tsx` composition page, and
+  registered the route `/shift-management/scheduling` in `App.tsx`. `dotnet build` (0 errors),
+  `dotnet test --filter "FullyQualifiedName~CreateShift"` (10/10 passed), and `npx tsc --noEmit` (only
+  pre-existing unrelated errors in `SomeModule/SomeFeature/Listing/*`, none touching the new files).
+- Committed and merged to `main` as a fast-forward; set status to Done (board + local index.json + local
+  slice.json).
+- **Learnings for future iterations:** see the new `## Codebase Patterns` section at the top of this
+  file (test-project glob collision, generated-field/generate-and-return convention, cross-field
+  validator pattern, implicit Cratis global usings, index.ts barrel survival on rebuild).
+---

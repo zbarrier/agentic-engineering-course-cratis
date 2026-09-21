@@ -5,6 +5,7 @@ import { BusyIndicatorDialog, ConfirmationDialog } from '@cratis/components/Dial
 import { Home } from './Home';
 import { SomeFeature } from './SomeModule/SomeFeature';
 import { Booking } from './Reservations/Booking';
+import { Scheduling } from './ShiftManagement/Scheduling';
 
 function App() {
     return (
@@ -15,6 +16,7 @@ function App() {
                         <Route path='/' element={<Home />} />
                         <Route path='/demo' element={<SomeFeature />} />
                         <Route path='/restaurants/:restaurantId/book' element={<Booking />} />
+                        <Route path='/shift-management/scheduling' element={<Scheduling />} />
                     </Routes>
                 </BrowserRouter>
             </DialogComponents>
