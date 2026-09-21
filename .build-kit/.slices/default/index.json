@@ -29,9 +29,23 @@
       }
     },
     {
+      "id": "9dfd36bc-f1e9-4b88-87f2-f286d19db636",
+      "slice": "Flag No-Show",
+      "index": 2,
+      "contextName": "default",
+      "contextSlug": "default",
+      "folder": "flagno-show",
+      "status": "Created",
+      "definition": {
+        "id": "9dfd36bc-f1e9-4b88-87f2-f286d19db636",
+        "title": "Flag No-Show",
+        "status": "Created"
+      }
+    },
+    {
       "id": "43fed095-ee35-4154-941c-7c76b8ed961d",
       "slice": "Flag Late Arrival",
-      "index": 2,
+      "index": 3,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "flaglatearrival",
@@ -43,37 +57,9 @@
       }
     },
     {
-      "id": "5b40d125-aa36-4027-b165-7e64589bba06",
-      "slice": "Record Shift Assignment",
-      "index": 3,
-      "contextName": "default",
-      "contextSlug": "default",
-      "folder": "recordshiftassignment",
-      "status": "Blocked",
-      "definition": {
-        "id": "5b40d125-aa36-4027-b165-7e64589bba06",
-        "title": "Record Shift Assignment",
-        "status": "Blocked"
-      }
-    },
-    {
-      "id": "9dfd36bc-f1e9-4b88-87f2-f286d19db636",
-      "slice": "Flag No-Show",
-      "index": 4,
-      "contextName": "default",
-      "contextSlug": "default",
-      "folder": "flagno-show",
-      "status": "Blocked",
-      "definition": {
-        "id": "9dfd36bc-f1e9-4b88-87f2-f286d19db636",
-        "title": "Flag No-Show",
-        "status": "Blocked"
-      }
-    },
-    {
       "id": "a32e36b3-a17a-42d3-9e7e-3b116ffea316",
       "slice": "Flag Missed Clock-Out",
-      "index": 5,
+      "index": 4,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "flagmissedclock-out",
@@ -87,7 +73,7 @@
     {
       "id": "e50d8a5a-5c9d-4b56-a44d-19eaeab36fc3",
       "slice": "Flag Early Departure",
-      "index": 6,
+      "index": 5,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "flagearlydeparture",
@@ -99,37 +85,65 @@
       }
     },
     {
+      "id": "069d40be-d555-4122-a43c-80b21cca5a18",
+      "slice": "MyShiftToday",
+      "index": 6,
+      "contextName": "default",
+      "contextSlug": "default",
+      "folder": "myshifttoday",
+      "status": "Created",
+      "definition": {
+        "id": "069d40be-d555-4122-a43c-80b21cca5a18",
+        "title": "MyShiftToday",
+        "status": "Created"
+      }
+    },
+    {
       "id": "ce814e13-da54-4cc6-b9f9-88a83677595b",
       "slice": "PendingShiftAssignments",
       "index": 7,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "pendingshiftassignments",
-      "status": "Blocked",
+      "status": "Created",
       "definition": {
         "id": "ce814e13-da54-4cc6-b9f9-88a83677595b",
         "title": "PendingShiftAssignments",
-        "status": "Blocked"
+        "status": "Created"
       }
     },
     {
-      "id": "069d40be-d555-4122-a43c-80b21cca5a18",
-      "slice": "MyShiftToday",
+      "id": "d98913f8-b74c-4e91-bb18-68404186c53e",
+      "slice": "PendingLateArrivalReviews",
       "index": 8,
       "contextName": "default",
       "contextSlug": "default",
-      "folder": "myshifttoday",
-      "status": "Blocked",
+      "folder": "pendinglatearrivalreviews",
+      "status": "Created",
       "definition": {
-        "id": "069d40be-d555-4122-a43c-80b21cca5a18",
-        "title": "MyShiftToday",
-        "status": "Blocked"
+        "id": "d98913f8-b74c-4e91-bb18-68404186c53e",
+        "title": "PendingLateArrivalReviews",
+        "status": "Created"
+      }
+    },
+    {
+      "id": "48770156-9dc5-44de-a79a-36ca1827c947",
+      "slice": "PendingShiftStarts",
+      "index": 9,
+      "contextName": "default",
+      "contextSlug": "default",
+      "folder": "pendingshiftstarts",
+      "status": "Created",
+      "definition": {
+        "id": "48770156-9dc5-44de-a79a-36ca1827c947",
+        "title": "PendingShiftStarts",
+        "status": "Created"
       }
     },
     {
       "id": "fbb85724-1669-4b1d-8713-c50d8fa3445c",
       "slice": "MyActiveTimeEntry",
-      "index": 9,
+      "index": 10,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "myactivetimeentry",
@@ -141,37 +155,9 @@
       }
     },
     {
-      "id": "48770156-9dc5-44de-a79a-36ca1827c947",
-      "slice": "PendingShiftStarts",
-      "index": 10,
-      "contextName": "default",
-      "contextSlug": "default",
-      "folder": "pendingshiftstarts",
-      "status": "Blocked",
-      "definition": {
-        "id": "48770156-9dc5-44de-a79a-36ca1827c947",
-        "title": "PendingShiftStarts",
-        "status": "Blocked"
-      }
-    },
-    {
-      "id": "d98913f8-b74c-4e91-bb18-68404186c53e",
-      "slice": "PendingLateArrivalReviews",
-      "index": 11,
-      "contextName": "default",
-      "contextSlug": "default",
-      "folder": "pendinglatearrivalreviews",
-      "status": "Blocked",
-      "definition": {
-        "id": "d98913f8-b74c-4e91-bb18-68404186c53e",
-        "title": "PendingLateArrivalReviews",
-        "status": "Blocked"
-      }
-    },
-    {
       "id": "92beffa9-8f87-4e0e-8b21-02b2d80f3f3f",
       "slice": "MyOpenBreak",
-      "index": 12,
+      "index": 11,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "myopenbreak",
@@ -185,7 +171,7 @@
     {
       "id": "8d8d30e2-6e43-4f1f-94b3-566e24e9fb4e",
       "slice": "OpenTimeEntries",
-      "index": 13,
+      "index": 12,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "opentimeentries",
@@ -199,7 +185,7 @@
     {
       "id": "928f777d-bb89-4320-828d-72f2f0bbd5fb",
       "slice": "PendingEarlyDepartureReviews",
-      "index": 14,
+      "index": 13,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "pendingearlydeparturereviews",
@@ -213,7 +199,7 @@
     {
       "id": "9d2294e6-6e20-4c15-ae1c-aafecdb5c740",
       "slice": "AttendanceExceptionsView",
-      "index": 15,
+      "index": 14,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "attendanceexceptionsview",
@@ -227,7 +213,7 @@
     {
       "id": "4ffcadfd-7912-4f80-ab4c-db39c4ead61d",
       "slice": "MyMonthlyAttendanceSummary",
-      "index": 16,
+      "index": 15,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "mymonthlyattendancesummary",
@@ -239,9 +225,37 @@
       }
     },
     {
+      "id": "1579f667-dbd9-4849-a4f6-7d47b630786c",
+      "slice": "Record Shift Schedule",
+      "index": 16,
+      "contextName": "default",
+      "contextSlug": "default",
+      "folder": "recordshiftschedule",
+      "status": "Created",
+      "definition": {
+        "id": "1579f667-dbd9-4849-a4f6-7d47b630786c",
+        "title": "Record Shift Schedule",
+        "status": "Created"
+      }
+    },
+    {
+      "id": "5b40d125-aa36-4027-b165-7e64589bba06",
+      "slice": "Record Shift Assignment",
+      "index": 17,
+      "contextName": "default",
+      "contextSlug": "default",
+      "folder": "recordshiftassignment",
+      "status": "Created",
+      "definition": {
+        "id": "5b40d125-aa36-4027-b165-7e64589bba06",
+        "title": "Record Shift Assignment",
+        "status": "Created"
+      }
+    },
+    {
       "id": "20c5e02c-7d2f-4ae8-b76d-90abc451e6ff",
       "slice": "Place Reservation",
-      "index": 17,
+      "index": 18,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "placereservation",
@@ -255,7 +269,7 @@
     {
       "id": "15d67bd1-8987-463f-8512-25592f14a0eb",
       "slice": "Active Reservations",
-      "index": 18,
+      "index": 19,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "activereservations",
@@ -269,7 +283,7 @@
     {
       "id": "acd63cc8-036c-47de-93bd-a3a7f5ba0541",
       "slice": "Cancel Vacation",
-      "index": 19,
+      "index": 20,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "cancelvacation",
@@ -283,7 +297,7 @@
     {
       "id": "99b37bde-d32e-4a62-8f8c-ca9e995bbaec",
       "slice": "CorrectTimeEntry",
-      "index": 20,
+      "index": 21,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "correcttimeentry",
@@ -297,7 +311,7 @@
     {
       "id": "a726b1be-b7e1-46a5-9db0-0e00c2ce4f33",
       "slice": "Plan Vacation",
-      "index": 21,
+      "index": 22,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "planvacation",
@@ -306,20 +320,6 @@
         "id": "a726b1be-b7e1-46a5-9db0-0e00c2ce4f33",
         "title": "Plan Vacation",
         "status": "Created"
-      }
-    },
-    {
-      "id": "1579f667-dbd9-4849-a4f6-7d47b630786c",
-      "slice": "Record Shift Schedule",
-      "index": 22,
-      "contextName": "default",
-      "contextSlug": "default",
-      "folder": "recordshiftschedule",
-      "status": "Blocked",
-      "definition": {
-        "id": "1579f667-dbd9-4849-a4f6-7d47b630786c",
-        "title": "Record Shift Schedule",
-        "status": "Blocked"
       }
     },
     {
@@ -435,37 +435,9 @@
       }
     },
     {
-      "id": "30e7993c-a99a-48c9-a51d-69a27f9b1ce8",
-      "slice": "Shift Summary",
-      "index": 31,
-      "contextName": "default",
-      "contextSlug": "default",
-      "folder": "shiftsummary",
-      "status": "Done",
-      "definition": {
-        "id": "30e7993c-a99a-48c9-a51d-69a27f9b1ce8",
-        "title": "Shift Summary",
-        "status": "Done"
-      }
-    },
-    {
-      "id": "1cc213ff-f05b-4f11-b4d7-c539f710ffa2",
-      "slice": "Assign Employee to Shift",
-      "index": 32,
-      "contextName": "default",
-      "contextSlug": "default",
-      "folder": "assignemployeetoshift",
-      "status": "Planned",
-      "definition": {
-        "id": "1cc213ff-f05b-4f11-b4d7-c539f710ffa2",
-        "title": "Assign Employee to Shift",
-        "status": "Planned"
-      }
-    },
-    {
       "id": "5c3becce-4799-40d1-b6fd-cdaccd60c913",
       "slice": "Active Shift Details",
-      "index": 33,
+      "index": 31,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "activeshiftdetails",
@@ -479,7 +451,7 @@
     {
       "id": "c1368daa-e9be-4e1b-9585-0f719777a588",
       "slice": "Shift Assignments",
-      "index": 34,
+      "index": 32,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "shiftassignments",
@@ -493,7 +465,7 @@
     {
       "id": "4e46fc98-f27d-45f3-99af-42409154c91c",
       "slice": "Create Shift",
-      "index": 35,
+      "index": 33,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "createshift",
@@ -505,23 +477,65 @@
       }
     },
     {
+      "id": "30e7993c-a99a-48c9-a51d-69a27f9b1ce8",
+      "slice": "Shift Summary",
+      "index": 34,
+      "contextName": "default",
+      "contextSlug": "default",
+      "folder": "shiftsummary",
+      "status": "Done",
+      "definition": {
+        "id": "30e7993c-a99a-48c9-a51d-69a27f9b1ce8",
+        "title": "Shift Summary",
+        "status": "Done"
+      }
+    },
+    {
+      "id": "1cc213ff-f05b-4f11-b4d7-c539f710ffa2",
+      "slice": "Assign Employee to Shift",
+      "index": 35,
+      "contextName": "default",
+      "contextSlug": "default",
+      "folder": "assignemployeetoshift",
+      "status": "Done",
+      "definition": {
+        "id": "1cc213ff-f05b-4f11-b4d7-c539f710ffa2",
+        "title": "Assign Employee to Shift",
+        "status": "Done"
+      }
+    },
+    {
       "id": "78c3f677-fe66-4491-ba84-53c1bd215323",
       "slice": "PendingShiftSchedules",
       "index": 36,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "pendingshiftschedules",
-      "status": "Blocked",
+      "status": "Created",
       "definition": {
         "id": "78c3f677-fe66-4491-ba84-53c1bd215323",
         "title": "PendingShiftSchedules",
-        "status": "Blocked"
+        "status": "Created"
+      }
+    },
+    {
+      "id": "1ed40266-e35a-4593-a421-4ba892407034",
+      "slice": "ClockIn",
+      "index": 37,
+      "contextName": "default",
+      "contextSlug": "default",
+      "folder": "clockin",
+      "status": "Created",
+      "definition": {
+        "id": "1ed40266-e35a-4593-a421-4ba892407034",
+        "title": "ClockIn",
+        "status": "Created"
       }
     },
     {
       "id": "949d906f-1848-4c55-8bfa-341ab767eb34",
       "slice": "StartBreak",
-      "index": 37,
+      "index": 38,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "startbreak",
@@ -535,7 +549,7 @@
     {
       "id": "9118ed92-960d-42f2-98a8-26f72236ba8b",
       "slice": "EndBreak",
-      "index": 38,
+      "index": 39,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "endbreak",
@@ -549,7 +563,7 @@
     {
       "id": "107a1c7f-ff7b-4de4-8bff-ff42b15ffea6",
       "slice": "ClockOut",
-      "index": 39,
+      "index": 40,
       "contextName": "default",
       "contextSlug": "default",
       "folder": "clockout",
@@ -558,20 +572,6 @@
         "id": "107a1c7f-ff7b-4de4-8bff-ff42b15ffea6",
         "title": "ClockOut",
         "status": "Created"
-      }
-    },
-    {
-      "id": "1ed40266-e35a-4593-a421-4ba892407034",
-      "slice": "ClockIn",
-      "index": 40,
-      "contextName": "default",
-      "contextSlug": "default",
-      "folder": "clockin",
-      "status": "Blocked",
-      "definition": {
-        "id": "1ed40266-e35a-4593-a421-4ba892407034",
-        "title": "ClockIn",
-        "status": "Blocked"
       }
     }
   ]

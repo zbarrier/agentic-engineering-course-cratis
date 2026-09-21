@@ -44,6 +44,38 @@
   `ShiftId`, not `Id`) when the source event already carries that field explicitly; `Id`-named
   properties only get special-cased to the raw event-source id when the event itself has no
   matching field (see `SomeModule/SomeFeature/Listing.cs`'s `Guid Id` from an event with no `Id`).
+- A `ConceptAs<Guid>` concept only gets `implicit operator EventSourceId(...)` if it is meant to be
+  a command's own event-source/stream key (e.g. `ShiftId`). A same-command Guid field that is just a
+  foreign reference (e.g. `EmployeeId` on `AssignEmployeeToShift`) must NOT define that operator —
+  Arc's `ARCCHR0002` analyzer treats every property with an implicit `EventSourceId` conversion as an
+  event-source-id *candidate*, and having two on one command is a build error ("multiple event source
+  id candidate properties ... does not implement ICanProvideEventSourceId"). Compare `ShiftId.cs`
+  (has the operator) vs. `RestaurantId.cs`/`EmployeeId.cs` (foreign-reference ids, no operator).
+- DCB business rules keyed on a single-value read model (matching the command's `[Key]`) follow the
+  `PlaceReservation` pattern exactly: `[ReadModel][FromEvent<TEvent>] record Existing<X>(TKey Key)`
+  injected as a nullable `Handle()` parameter, `is null` ⇒ "doesn't exist yet". For a rule needing an
+  *accumulated* set keyed the same way (e.g. "employee already assigned to this shift" — is EmployeeId
+  in the set of EmployeeIds already assigned to ShiftId), define a second `[ReadModel]` with a custom
+  `IReducerFor<T>` that folds the list (`(current ?? new(key, [])) with { Items = [..current?.Items ?? [], @event.Item] }`)
+  and inject it alongside the existence check; `Handle()` then does an in-memory `.Contains(...)`.
+- `Cratis.Monads.Result<TSuccess,TError>` needs an explicit `using Cratis.Monads;` in
+  `CratisApp.Specs` spec files (unlike the main `CratisApp` project, where it resolves with no
+  `using` thanks to the Cratis SDK's own implicit global usings) — the Specs project doesn't get
+  those transitively through the `ProjectReference`. API: `IsSuccess` (bool), `TryGetResult(out T)`,
+  `TryGetError(out TError)` — no `Match`/`AsT0` visible in this SDK version, use the `TryGet*` pair.
+- For a command whose Guid-typed field has no dedicated picker/read-model yet (e.g. `employeeId` with
+  no Employee roster built), don't force it through a Cratis `*Field` component — those are
+  type-checked end-to-end against the command's declared property type (`InputTextField` requires a
+  `string` property; a `Guid` property fails to compile). Follow the `BookATable`/`PlaceReservation`
+  precedent: Guid-typed fields are supplied via route params + `onBeforeExecute` (`command.x =
+  Guid.parse(...)`), or — when there's truly no context to source it from yet — a plain (non-Cratis)
+  PrimeReact input bound to local `useState`, read inside `onBeforeExecute`. `CommandDialog`/`CommandForm`
+  happily render arbitrary non-field children as-is alongside typed fields.
+- A slice needing per-entity context that no list/detail page exists for yet (e.g. "Assign Employee to
+  Shift" needs a `shiftId`, but the shift-listing slices are still Planned) can extend the feature's
+  existing composition page with an *optional* route param (`useParams<{ shiftId?: string }>()`) rather
+  than inventing a second per-slice page — same precedent as `Booking.tsx` being mapped directly at
+  `/restaurants/:restaurantId/book` with no restaurant-list page existing either.
 ---
 
 ## [2026-09-18] - Record Shift Schedule
@@ -430,4 +462,52 @@
   slice.json).
 - **Learnings for future iterations:** see the two new bullets added to `## Codebase Patterns` above
   (Mongo query specs without live infra; AutoMap id-property naming).
+---
+
+## [2026-09-21] - Assign Employee to Shift
+
+- Picked "Assign Employee to Shift" (STATE_CHANGE, index 31) as the highest-priority "Planned" slice.
+  Other Planned slices this iteration left untouched per "one slice per iteration": Active Shift
+  Details (32), Shift Assignments (33).
+- Set status to InProgress (board + local index.json + local slice.json), created branch
+  `feature/assign-employee-to-shift` from `main`.
+- Fetched full spec via `mcp__eventmodelers__get_slice_data(contextName="Shift Management", sliceId=...)`.
+  Command `Assign Employee to Shift(shiftId, employeeId)` → Event `Employee Assigned to Shift`. GIVEN
+  step of spec 1 confirmed the trigger is "Shift Created" (produced by the now-Done "Create Shift"
+  slice), so — unlike the long chain of prior iterations blocked on Create Shift/Assign Employee to
+  Shift — this slice was itself unblocked.
+- Three specifications: happy path; reject when the shift doesn't exist; reject when the employee is
+  already assigned to that shift. Implemented via DCB: `[Key] ShiftId` on the command (same stream as
+  `ShiftCreated`), a nullable `ExistingShift` (`[FromEvent<ShiftCreated>]`) parameter for the existence
+  check, and a nullable `ShiftAssignments` read model (custom `IReducerFor<ShiftAssignments>` folding
+  `EmployeeAssignedToShift` events into an `EmployeeIds` list) for the duplicate-assignment check — see
+  the three new `## Codebase Patterns` bullets above (event-source-id candidate analyzer error,
+  accumulated-set DCB pattern, `Result<,>` needing an explicit `using` in Specs).
+- Added `ShiftManagement/Scheduling/EmployeeId.cs` (no `implicit operator EventSourceId` — it's a
+  foreign reference here, not this command's own stream key; giving it one caused build error
+  `ARCCHR0002`, fixed by removing it).
+- Three board comments (QUESTION type, from a prior `wdyt` pass) on the command node — role
+  qualification, non-existent employee, un-assigning a wrong pick — read but NOT acted on or resolved:
+  none are covered by a specification, matching the "Create Shift" precedent for out-of-spec comments.
+- Wrote 6 specs (`CratisApp.Specs/ShiftManagement/Scheduling/AssignEmployeeToShift/for_AssignEmployeeToShift/`),
+  pure unit specs calling `Handle()` directly with hand-built read-model instances (no Chronicle/HTTP
+  fixture needed) — one file per specification scenario, 2 facts each.
+- Frontend: the command has an inbound `HTML_SCREEN`, so UI-triggered. No "Available Employees" or
+  shift-listing read model exists yet (both still Blocked/Planned), so there's no dropdown/list to
+  source `shiftId`/`employeeId` from. Extended `Scheduling.tsx` with an optional `:shiftId` route param
+  (new route `/shift-management/scheduling/:shiftId/assign-employee` in `App.tsx`) that swaps the
+  "Create Shift" button for an "Assign Employee" one; `AssignEmployeeToShiftDialog.tsx` sources
+  `shiftId` from the route param and `employeeId` from a plain (non-Cratis-field) `InputText` + local
+  `useState`, both applied via `onBeforeExecute` — see the two new frontend `## Codebase Patterns`
+  bullets above.
+- `dotnet build` (0 warnings/errors on CratisApp), `dotnet test --filter "FullyQualifiedName~AssignEmployeeToShift"`
+  (6/6 passed), `npx tsc --noEmit` (only pre-existing unrelated errors in `SomeModule/SomeFeature/Listing/*`,
+  none touching the new/changed files).
+- Committed and merged to `main` as a fast-forward; set status to Done (board + local index.json + local
+  slice.json).
+- **Learnings for future iterations:** see the five new bullets added to `## Codebase Patterns` above.
+  Once "Available Employees" (Blocked) and a shift-listing slice (Active Shift Details / Shift
+  Assignments, both Planned) are built, revisit `AssignEmployeeToShiftDialog` to replace the raw
+  employee-id text input with a proper dropdown, and wire a real "Assign" action from the shift list
+  instead of a bare route param.
 ---
