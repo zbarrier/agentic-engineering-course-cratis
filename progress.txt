@@ -511,3 +511,80 @@
   employee-id text input with a proper dropdown, and wire a real "Assign" action from the shift list
   instead of a bare route param.
 ---
+
+## [2026-09-21T14:01:57.900Z] — Task 5e626afb-1c37-48cc-9c07-052c3e9d3cc0
+
+Slice: PendingLateArrivalReviews (d98913f8-b74c-4e91-bb18-68404186c53e)
+Status change: Created
+
+Action taken:
+- Loaded slice via list_slices/get_node (get_slice_data requires a MODEL_CONTEXT/timeline match and
+  this board has none — "default" is just the fallback local folder slug, not a real context name).
+  Confirmed status is "Created" and slice.json/index.json already reflect this (STATE_VIEW, no
+  commands/events/queries elaborated yet). No board or code action needed for this status.
+
+Learnings:
+- This board has no MODEL_CONTEXT node, so `get_slice_data(contextName="default")` fails with
+  "No context or timeline found matching default". For boards like this, resolve slice identity via
+  `list_slices` + `get_node` instead, and persist the minimal {id, title, status, sliceType} shape —
+  matching what's already under `.build-kit/.slices/default/*/slice.json`.
+- AGENT.md does not exist in this repo; accumulated reusable learnings have instead been kept in this
+  file under a `## Codebase Patterns` header at the top. Check that section too, not just AGENT.md.
+---
+
+## [2026-09-21] - Active Shift Details
+
+- Two Planned slices this iteration: "Active Shift Details" (STATE_VIEW, index 31) and "Shift
+  Assignments" (STATE_VIEW, index 32). Cross-checked local `index.json` against
+  `mcp__eventmodelers__list_slices` first — they matched. Picked "Active Shift Details" (lower index).
+  "Shift Assignments" left untouched per "one slice per iteration".
+- Also confirmed the connection config actually lives at `.eventmodelers/config.json` (project root),
+  not `.build-kit/.eventmodelers/config.json` as the ralph instructions literally say — that path only
+  has `install-manifest.json`. The root config matched the board/token/org given at session start, so
+  platform communication (MCP calls, `update-slice-status`) was used normally rather than skipped.
+- Set status to InProgress (board), created branch `feature/active-shift-details` from `main`.
+- Fetched full spec via `mcp__eventmodelers__get_slice_data(contextName="Shift Management", sliceId=...)`.
+  READMODEL "Active Shift Details" (shiftId, name, type, recurring, fromDay, toDay, startDateTime,
+  endDateTime) projects from INBOUND event "Shift Created" (produced by the now-Done "Create Shift"
+  slice) — unblocked, unlike the earlier long chain of slices stuck on Create Shift/Assign Employee to
+  Shift. One spec: "Manager views active shift details", WHEN `Get Active Shift Details(shiftId)`.
+- Nearly identical in shape to the already-built "Shift Summary" slice (same source event, same
+  single-item-lookup-by-id use case) but with three extra fields (recurring, fromDay, toDay) that
+  "Shift Summary" doesn't expose. Implemented
+  `ShiftManagement/Scheduling/ActiveShiftDetails/ActiveShiftDetails.cs` as a
+  `[ReadModel][FromEvent<ShiftCreated>]` record with one static query `GetActiveShiftDetails`, AutoMap
+  handling all 8 fields by name — exact copy of the `ShiftSummary` pattern with the wider field set.
+  One spec (`for_ActiveShiftDetails/when_getting_the_active_shift_details_by_id.cs`), same
+  NSubstitute-on-`IMongoCollection.FindAsync` mocking approach as `ShiftSummary`'s spec — no live Mongo
+  needed.
+- A board comment on the readmodel ("what makes a shift 'the active one' — current time, or picked from
+  a list?") was read but NOT acted on: the spec's WHEN step passes `shiftId` directly, so "active" here
+  just means "the shift the caller specifies", same as `ShiftSummary`'s by-id lookup — not covered by a
+  spec, so left as an open question rather than guessed into code (same precedent as prior slices'
+  unactioned comments).
+- Unlike "Shift Summary" (no screen of its own), this slice DOES have an inbound `HTML_SCREEN` ("Active
+  Shift"), so it's UI-triggered — first read-only display component in this project (no prior
+  `useQuery`/`QueryFor` usage existed anywhere in the codebase to copy from). Added
+  `ActiveShiftDetailsView.tsx` using the generated `GetActiveShiftDetails.use({ shiftId })` hook form
+  (per `build-state-view`'s patterns.md "Hook form" section), gated on `result.isPerforming`. Wired it
+  into `Scheduling.tsx` (renders when the optional `:shiftId` route param is present, above the
+  Create/Assign button — same "extend the existing composition page with an optional route param"
+  precedent as `AssignEmployeeToShiftDialog`) and added a new route
+  `/shift-management/scheduling/:shiftId` in `App.tsx` (a plain view route, distinct from the existing
+  `.../:shiftId/assign-employee` dialog route).
+- `dotnet build` (0 warnings/errors on CratisApp; only pre-existing Microsoft.NET.StringTools infra
+  warnings), `dotnet test --filter "FullyQualifiedName~ActiveShiftDetails"` (1/1 passed), `npx tsc
+  --noEmit` (only pre-existing errors: the generated `ActiveShiftDetails.ts`/`ShiftSummary.ts` proxies
+  both hit the same duplicate-`@cratis/arc`-package type mismatch as before, plus the pre-existing
+  unrelated `SomeModule/SomeFeature/Listing/*` errors — none in the new hand-written files).
+- Committed and merged to `main` as a fast-forward; set status to Done (board + local index.json + local
+  slice.json).
+- **Learnings for future iterations:**
+  - The Ralph instructions' literal config path (`.build-kit/.eventmodelers/config.json`) does not
+    match this repo's actual config location (`.eventmodelers/config.json` at project root). Check the
+    root-level path too before concluding platform communication should be skipped — the root config's
+    token/boardId/baseUrl matching the session's connection info is the tell that it's the real one.
+  - First slice in this project with a read-only display component (as opposed to a `CommandDialog`).
+    Pattern: `const [result] = SomeQuery.use({ param })`, check `result.isPerforming` before rendering,
+    render from `result.data`. No `DataTableForObservableQuery` needed for a single-item snapshot query.
+---

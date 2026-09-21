@@ -17,6 +17,7 @@ function App() {
                         <Route path='/demo' element={<SomeFeature />} />
                         <Route path='/restaurants/:restaurantId/book' element={<Booking />} />
                         <Route path='/shift-management/scheduling' element={<Scheduling />} />
+                        <Route path='/shift-management/scheduling/:shiftId' element={<Scheduling />} />
                         <Route path='/shift-management/scheduling/:shiftId/assign-employee' element={<Scheduling />} />
                     </Routes>
                 </BrowserRouter>

@@ -2,6 +2,7 @@ import { Button } from 'primereact/button';
 import { useParams } from 'react-router-dom';
 import { CreateShiftDialog } from './CreateShift';
 import { AssignEmployeeToShiftDialog } from './AssignEmployeeToShift';
+import { ActiveShiftDetailsView } from './ActiveShiftDetails';
 import { useDialog } from '@cratis/arc.react/dialogs';
 
 export const Scheduling = () => {
@@ -25,6 +26,7 @@ export const Scheduling = () => {
                         onClick={() => showCreateShift()} />
                 )}
             </div>
+            {shiftId && <ActiveShiftDetailsView shiftId={shiftId} />}
             <CreateShift />
             <AssignEmployeeToShift />
         </div>

@@ -1,20 +1,5 @@
 [
   {
-    "id": "5e626afb-1c37-48cc-9c07-052c3e9d3cc0",
-    "createdAt": "2026-09-21T13:59:01.322Z",
-    "payload": {
-      "assignee": null,
-      "boardId": "a15a6431-c862-43e3-8b75-e3ea826f0f1e",
-      "event": "slice:changed",
-      "organizationId": null,
-      "sliceId": "d98913f8-b74c-4e91-bb18-68404186c53e",
-      "sliceStatus": "Created",
-      "sliceTitle": "PendingLateArrivalReviews",
-      "ticketNumber": null,
-      "timestamp": 1789999140275
-    }
-  },
-  {
     "id": "760981af-1266-40b6-8a14-359e7ddfee0e",
     "createdAt": "2026-09-21T13:59:05.864Z",
     "payload": {
