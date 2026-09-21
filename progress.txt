@@ -31,6 +31,19 @@
   concept/slice files just because a type looks unqualified; match the existing files (none).
 - Proxy-generated `index.ts` barrels are NOT clobbered on rebuild once hand-edited — adding a second
   `export * from './XyzDialog'` line survives subsequent `dotnet build` runs.
+- Read-model specs: MongoDB.Driver 3.x has NO instance `Find`/`FirstOrDefaultAsync` on
+  `IMongoCollection<T>` — they're extension methods that ultimately call the interface method
+  `FindAsync<TProjection>(FilterDefinition<T>, FindOptions<T,TProjection>, CancellationToken)`. To unit
+  spec a `[ReadModel]` static query without a live Mongo/Chronicle instance, substitute
+  `IMongoCollection<T>.FindAsync(...)` (NSubstitute) to return a substituted `IAsyncCursor<T>` whose
+  `Current` yields the expected row and `MoveNextAsync` returns `true` then `false` — the query
+  method's own `.Find(expr).FirstOrDefaultAsync()` call resolves through that mock correctly. No
+  Testcontainers/real MongoDB needed for simple single-model queries.
+- Record-level `[ReadModel][FromEvent<TEvent>]` AutoMap matches read-model properties to event
+  properties **by name** (case-insensitive) — name the id property after the domain concept (e.g.
+  `ShiftId`, not `Id`) when the source event already carries that field explicitly; `Id`-named
+  properties only get special-cased to the raw event-source id when the event itself has no
+  matching field (see `SomeModule/SomeFeature/Listing.cs`'s `Guid Id` from an event with no `Id`).
 ---
 
 ## [2026-09-18] - Record Shift Schedule
@@ -387,4 +400,34 @@
 - **Learnings for future iterations:** see the new `## Codebase Patterns` section at the top of this
   file (test-project glob collision, generated-field/generate-and-return convention, cross-field
   validator pattern, implicit Cratis global usings, index.ts barrel survival on rebuild).
+---
+
+## [2026-09-21] - Shift Summary
+
+- Picked "Shift Summary" (STATE_VIEW, index 31) as the highest-priority "Planned" slice. Other Planned
+  slices left untouched per "one slice per iteration": Assign Employee to Shift (32), Active Shift
+  Details (33), Shift Assignments (34).
+- Set status to InProgress (board), created branch `feature/shift-summary` from `main`.
+- Fetched full spec via `mcp__eventmodelers__get_slice_data(contextName="Shift Management", sliceId=...)`.
+  READMODEL "Shift Summary" (shiftId, name, type, startDateTime, endDateTime) projects from INBOUND
+  event "Shift Created" — produced by the now-Done "Create Shift" slice, so unlike the long chain of
+  slices blocked on Create Shift/Assign Employee to Shift, this one was unblocked. Confirmed
+  `ShiftCreated` exists in `ShiftManagement/Scheduling/CreateShift/CreateShift.cs`.
+- Implemented `ShiftManagement/Scheduling/ShiftSummary/ShiftSummary.cs`: `[ReadModel][FromEvent<ShiftCreated>]`
+  record with a single static query `GetShiftSummary(ShiftId, IMongoCollection<ShiftSummary>)` — a
+  plain (non-observable) single-item lookup by id, matching the slice's one-shot "context lookup on
+  the Assign Employee form" use case. No custom projection class needed — AutoMap handles all five
+  fields by name from `ShiftCreated`.
+- This read model has no HTML_SCREEN of its own — its only screen dependency ("Assign Employee to
+  Shift") belongs to a different, still-Planned slice (index 32). Built only the read model + query for
+  this slice; no frontend component/composition-page change needed here.
+- Wrote one spec (`for_ShiftSummary/when_getting_the_shift_summary_by_id.cs`) covering the slice's sole
+  specification ("Manager views shift summary before assigning"), mocking `IMongoCollection<T>` per the
+  new Codebase Pattern above (NSubstitute on `FindAsync`, no live Mongo needed).
+- `dotnet build` (0 warnings/errors on CratisApp; only pre-existing CS8618 spec-project warnings) and
+  `dotnet test --filter "FullyQualifiedName~ShiftSummary"` (1/1 passed).
+- Committed and merged to `main` as a fast-forward; set status to Done (board + local index.json + local
+  slice.json).
+- **Learnings for future iterations:** see the two new bullets added to `## Codebase Patterns` above
+  (Mongo query specs without live infra; AutoMap id-property naming).
 ---
